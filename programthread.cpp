@@ -2,8 +2,37 @@
 #include <sys/timerfd.h>
 #include <sys/ipc.h>
 #include <sys/msg.h>
+#include <sys/signal.h>
 //----------------------------------------------------------------------------------------------------------------------
 #include "programthread.h"
+//----------------------------------------------------------------------------------------------------------------------
+ProgramThread::ProgramThread():inMQueue(false)
+{
+	int32_t ret; 
+	pthread_mutexattr_t		cmdMutAttr;
+	ret = pthread_mutexattr_init (&cmdMutAttr);
+	ret = pthread_mutexattr_settype(&cmdMutAttr, PTHREAD_MUTEX_NORMAL);
+	ret = pthread_mutex_init (&cmdMut, &cmdMutAttr);
+	epollFD = epoll_create1(EPOLL_CLOEXEC);
+	char* span = getenv("THREAD_PERIODIC_TIMER_SPAN");
+	uint64_t ispan;
+	if(span)
+		ispan=atoi(span);
+	ThreadSleepNS=ispan?ispan:THREAD_PERIODIC_TIMER_SPAN_DEFAULT;
+	char* eventlimit = getenv("PROCESS_PACKETS_AT_ONCE");
+	uint32_t ilim;
+	if(eventlimit)
+		ilim=atoi(eventlimit);
+	eventsAtOnce=ilim?ilim:PROCESS_PACKETS_AT_ONCE_DEFAULT;
+}
+//----------------------------------------------------------------------------------------------------------------------
+ProgramThread::~ProgramThread()
+{
+	if(epollFD >= 0)
+		close(epollFD);
+	if(tmrFD >= 0)
+		close(tmrFD);
+}
 //----------------------------------------------------------------------------------------------------------------------
 int ProgramThread::threadNumGenerator = 1;
 //----------------------------------------------------------------------------------------------------------------------
@@ -20,7 +49,11 @@ int ProgramThread::start_thread()
 	ret = pthread_attr_init (&thread_attr);
 	int schedtype = SCHED_OTHER;
 	ret = pthread_attr_setschedpolicy(&thread_attr, schedtype);
-	thread_schedparam.__sched_priority = DEFAULT_THREAD_PRIORITY;
+	uint32_t iprio=THREAD_PRIORITY_DEFAULT;
+	char* prio = getenv("THREAD_PRIORITY");
+	if(prio)
+		iprio=atoi(prio);
+	thread_schedparam.__sched_priority = iprio?iprio:THREAD_PRIORITY_DEFAULT;
 	ret = pthread_attr_setschedparam (&thread_attr, &thread_schedparam);
 	ret = pthread_create(&thread, &thread_attr, _entry_func, this);
 	pthread_setschedparam(thread, schedtype, &thread_schedparam);
@@ -108,6 +141,6 @@ void ProgramThread::process_message()
 {
 	int processed=0;
     std::unique_ptr<InterModuleMessage> packet=nullptr;
-    while(processed < PROCESS_PACKETS_AT_ONCE && (packet = inMQueue.pop()) != nullptr);
+    while(processed < eventsAtOnce && (packet = inMQueue.pop()) != nullptr);
 }
 //----------------------------------------------------------------------------------------------------------------------
