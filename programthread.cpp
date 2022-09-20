@@ -64,6 +64,21 @@ int ProgramThread::start_thread()
 	return (ret == 0);
 }
 //----------------------------------------------------------------------------------------------------------------------
+int ProgramThread::start_periodic_timer()
+{
+	int res = 0;
+	tmrFD = timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK | TFD_CLOEXEC);
+	if(tmrFD < 0)
+		return -1;
+	struct itimerspec tmrVal = {0};
+	tmrVal.it_value.tv_sec = tmrVal.it_interval.tv_sec = ThreadSleepNS / 1000000000;
+	tmrVal.it_value.tv_nsec = tmrVal.it_interval.tv_nsec = ThreadSleepNS % 1000000000;
+	res = timerfd_settime(tmrFD, 0, &tmrVal, NULL);
+	if(!res)
+		add_pollable_handler(tmrFD, EPOLLIN, &ProgramThread::PeriodicTask, this);
+	return res;
+}
+//----------------------------------------------------------------------------------------------------------------------
 void ProgramThread::join_thread()
 {
 	stop=1;
@@ -75,31 +90,11 @@ void ProgramThread::init_module()
 {
 	if(epollFD < 0)
 	{
-		//
+		//need some error processing
+		return;
 	}
-	else
-	{
-		tmrFD = timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK | TFD_CLOEXEC);
-		if(tmrFD < 0)
-		{
-			//
-		}
-		else
-		{
-			struct itimerspec tmrVal = {0};
-			tmrVal.it_value.tv_sec = tmrVal.it_interval.tv_sec = ThreadSleepNS / 1000000000;
-			tmrVal.it_value.tv_nsec = tmrVal.it_interval.tv_nsec = ThreadSleepNS % 1000000000;
-
-			if(timerfd_settime(tmrFD, 0, &tmrVal, NULL) < 0)
-			{
-				//
-			}
-			else
-			{
-				add_pollable_handler(tmrFD, EPOLLIN, &ProgramThread::PeriodicTask, this);
-			}
-		}
-	}
+	if(ThreadSleepNS)
+		start_periodic_timer();
 	add_pollable_handler(inMQueue.fd(), EPOLLIN, &ProgramThread::process_message, this);
     inMQueue.start();
 	start_thread();

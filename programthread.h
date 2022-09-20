@@ -41,6 +41,7 @@ public:
 protected:
 	static int thread_num_generate();
 	virtual int start_thread();
+	virtual int start_periodic_timer();
 	virtual void PeriodicTask();
 	static void * _entry_func(void *This) {((ProgramThread *)This)->thread_run(); return NULL;}
 	pthread_t thread;
