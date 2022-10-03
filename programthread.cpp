@@ -79,6 +79,15 @@ int ProgramThread::start_periodic_timer()
 	return res;
 }
 //----------------------------------------------------------------------------------------------------------------------
+int ProgramThread::reset_periodic_timer()
+{
+	struct itimerspec tmrVal = {0};
+	tmrVal.it_value.tv_sec = tmrVal.it_interval.tv_sec = ThreadSleepNS / 1000000000;
+	tmrVal.it_value.tv_nsec = tmrVal.it_interval.tv_nsec = ThreadSleepNS % 1000000000;
+	int res = timerfd_settime(tmrFD, 0, &tmrVal, NULL);
+	return res;
+}
+//----------------------------------------------------------------------------------------------------------------------
 void ProgramThread::join_thread()
 {
 	stop=1;
