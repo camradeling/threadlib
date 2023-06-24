@@ -1,3 +1,3 @@
 [submodule "messagequeue"]
 	path = messagequeue
-	url = git@git.mobiledep.ru:embedded/messagequeue.git
+	url = https://github.com/camradeling/messagequeue.git
