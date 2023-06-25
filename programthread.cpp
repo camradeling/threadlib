@@ -15,7 +15,7 @@ ProgramThread::ProgramThread():inMQueue(false)
 	ret = pthread_mutex_init (&cmdMut, &cmdMutAttr);
 	epollFD = epoll_create1(EPOLL_CLOEXEC);
 	char* span = getenv("THREAD_PERIODIC_TIMER_SPAN");
-	uint64_t ispan;
+	uint64_t ispan=0;
 	if(span)
 		ispan=atoi(span);
 	ThreadSleepNS=ispan?ispan:THREAD_PERIODIC_TIMER_SPAN_DEFAULT;
@@ -105,7 +105,7 @@ void ProgramThread::init_module()
 	if(ThreadSleepNS)
 		start_periodic_timer();
 	add_pollable_handler(inMQueue.fd(), EPOLLIN, &ProgramThread::process_message, this);
-    inMQueue.start();
+	inMQueue.start();
 	start_thread();
 }
 //----------------------------------------------------------------------------------------------------------------------
