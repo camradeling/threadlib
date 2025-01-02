@@ -112,7 +112,7 @@ void ProgramThread::init_module()
 void ProgramThread::PeriodicTask()
 {
 	uint64_t expirations;
-	read(tmrFD, &expirations, sizeof(expirations));
+	static_cast<void>(read(tmrFD, &expirations, sizeof(expirations))); // avoiding multiple runs
 	pthread_mutex_lock(&cmdMut);
     thread_job();
 	pthread_mutex_unlock(&cmdMut);
