@@ -5,6 +5,7 @@
 #include <memory>
 #include <functional>
 #include <list>
+#include <string>
 //----------------------------------------------------------------------------------------------------------------------
 #include "programthread_config.h"
 #include "MessageQueue.h"
